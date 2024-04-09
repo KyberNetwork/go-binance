@@ -403,8 +403,8 @@ func (s *savingsServiceTestSuite) TestGetFlexibleProductPositionService() {
 		  {
 			"totalAmount": "75.46000000",
 			"tierAnnualPercentageRate": {
-			  "0-5BTC": 0.05,
-			  "5-10BTC": 0.03
+			  "0-5BTC": "0.05",
+			  "5-10BTC": "0.03"
 			},
 			"latestAnnualPercentageRate": "0.02599895",
 			"yesterdayAirdropPercentageRate": "0.02599895",
@@ -438,9 +438,9 @@ func (s *savingsServiceTestSuite) TestGetFlexibleProductPositionService() {
 	r.Len(positionsList.Rows, 1)
 	s.assertFlexibleProductPosition(&FlexibleProductPosition{
 		TotalAmount: "75.46000000",
-		TierAnnualPercentageRate: map[string]float64{
-			"0-5BTC":  0.05,
-			"5-10BTC": 0.03,
+		TierAnnualPercentageRate: map[string]string{
+			"0-5BTC":  "0.05",
+			"5-10BTC": "0.03",
 		},
 		LatestAnnualPercentageRate:     "0.02599895",
 		YesterdayAirdropPercentageRate: "0.02599895",
