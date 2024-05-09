@@ -639,7 +639,7 @@ func (s *FlexibleRewardHistoryService) Size(size int64) *FlexibleRewardHistorySe
 func (s *FlexibleRewardHistoryService) Do(ctx context.Context, opts ...RequestOption) (FlexibleRewardHistoryResponse, error) {
 	r := &request{
 		method:   http.MethodGet,
-		endpoint: "/sapi/v1/simple-earn/flexible/history/rewardRecord",
+		endpoint: "/sapi/v1/simple-earn/flexible/history/rewardsRecord",
 		secType:  secTypeSigned,
 	}
 	m := params{}
