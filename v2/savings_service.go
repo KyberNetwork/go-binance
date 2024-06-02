@@ -483,20 +483,20 @@ type GetFlexibleProductPositionResponse struct {
 }
 
 type FlexibleProductPosition struct {
-	TotalAmount                    string             `json:"totalAmount,omitempty"`
-	TierAnnualPercentageRate       map[string]float64 `json:"tierAnnualPercentageRate,omitempty"`
-	LatestAnnualPercentageRate     string             `json:"latestAnnualPercentageRate,omitempty"`
-	YesterdayAirdropPercentageRate string             `json:"yesterdayAirdropPercentageRate,omitempty"`
-	Asset                          string             `json:"asset,omitempty"`
-	AirDropAsset                   string             `json:"airDropAsset,omitempty"`
-	CanRedeem                      bool               `json:"canRedeem,omitempty"`
-	CollateralAmount               string             `json:"collateralAmount,omitempty"`
-	ProductID                      string             `json:"productId,omitempty"`
-	YesterdayRealTimeRewards       string             `json:"yesterdayRealTimeRewards,omitempty"`
-	CumulativeBonusRewards         string             `json:"cumulativeBonusRewards,omitempty"`
-	CumulativeRealTimeRewards      string             `json:"cumulativeRealTimeRewards,omitempty"`
-	CumulativeTotalRewards         string             `json:"cumulativeTotalRewards,omitempty"`
-	AutoSubscribe                  bool               `json:"autoSubscribe,omitempty"`
+	TotalAmount                    string            `json:"totalAmount,omitempty"`
+	TierAnnualPercentageRate       map[string]string `json:"tierAnnualPercentageRate,omitempty"`
+	LatestAnnualPercentageRate     string            `json:"latestAnnualPercentageRate,omitempty"`
+	YesterdayAirdropPercentageRate string            `json:"yesterdayAirdropPercentageRate,omitempty"`
+	Asset                          string            `json:"asset,omitempty"`
+	AirDropAsset                   string            `json:"airDropAsset,omitempty"`
+	CanRedeem                      bool              `json:"canRedeem,omitempty"`
+	CollateralAmount               string            `json:"collateralAmount,omitempty"`
+	ProductID                      string            `json:"productId,omitempty"`
+	YesterdayRealTimeRewards       string            `json:"yesterdayRealTimeRewards,omitempty"`
+	CumulativeBonusRewards         string            `json:"cumulativeBonusRewards,omitempty"`
+	CumulativeRealTimeRewards      string            `json:"cumulativeRealTimeRewards,omitempty"`
+	CumulativeTotalRewards         string            `json:"cumulativeTotalRewards,omitempty"`
+	AutoSubscribe                  bool              `json:"autoSubscribe,omitempty"`
 }
 
 // https://binance-docs.github.io/apidocs/spot/en/#get-locked-product-position-user_data
