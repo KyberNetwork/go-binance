@@ -1174,7 +1174,7 @@ type CrossMarginData struct {
 	DailyInterest   string   `json:"dailyInterest"`
 	YearlyInterest  string   `json:"yearlyInterest"`
 	BorrowLimit     string   `json:"borrowLimit"`
-	MarginablePairs []string `json:"marginablePairs"`
+	MarginablePairs []string `json:"marginablePairs"` //nolint
 }
 
 type CrossMarginDataService struct {
