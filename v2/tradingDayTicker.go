@@ -29,8 +29,8 @@ type TradingDayTicker struct {
 	QuoteVolume        string `json:"quoteVolume"`
 	OpenTime           uint64 `json:"openTime"`
 	CloseTime          uint64 `json:"closeTime"`
-	FirstId            uint64 `json:"firstId"`
-	LastId             uint64 `json:"lastId"`
+	FirstId            int64  `json:"firstId"`
+	LastId             int64  `json:"lastId"`
 	Count              uint64 `json:"count"`
 }
 
