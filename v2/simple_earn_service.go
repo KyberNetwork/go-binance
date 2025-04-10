@@ -1036,7 +1036,6 @@ func (s *SimpleEarnSetRedeemOptionService) Do(ctx context.Context, opts ...Reque
 	res = new(SimpleEarnSetRedeemOptionResp)
 	if err := json.Unmarshal(data, &res); err != nil {
 		return nil, err
->>>>>>> upstream/master
 	}
 	return res, nil
 }

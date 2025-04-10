@@ -1198,10 +1198,6 @@ func (c *Client) NewSubTransferHistoryService() *SubTransferHistoryService {
 	return &SubTransferHistoryService{c: c}
 }
 
-func (c *Client) NewSimpleEarnService() *SimpleEarnService {
-	return &SimpleEarnService{c: c}
-}
-
 func (c *Client) NewCryptoLoanService() *CryptoLoanService {
 	return &CryptoLoanService{c: c}
 }
