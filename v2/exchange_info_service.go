@@ -2,6 +2,7 @@ package binance
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 
 	"github.com/adshao/go-binance/v2/common"
@@ -9,10 +10,11 @@ import (
 
 // ExchangeInfoService exchange info service
 type ExchangeInfoService struct {
-	c           *Client
-	symbol      string
-	symbols     []string
-	permissions []string
+	c                  *Client
+	symbol             string
+	symbols            []string
+	permissions        []string
+	showPermissionSets *bool
 }
 
 // Symbol set symbol
@@ -35,6 +37,13 @@ func (s *ExchangeInfoService) Permissions(permissions ...string) *ExchangeInfoSe
 	return s
 }
 
+// ShowPermissionSets set showPermissionSets
+func (s *ExchangeInfoService) ShowPermissionSets(showPermissionSets *bool) *ExchangeInfoService {
+	s.showPermissionSets = showPermissionSets
+
+	return s
+}
+
 // Do send request
 func (s *ExchangeInfoService) Do(ctx context.Context, opts ...RequestOption) (res *ExchangeInfo, err error) {
 	r := &request{
@@ -51,6 +60,9 @@ func (s *ExchangeInfoService) Do(ctx context.Context, opts ...RequestOption) (re
 	}
 	if len(s.permissions) != 0 {
 		m["permissions"] = s.permissions
+	}
+	if s.showPermissionSets != nil {
+		m["showPermissionSets"] = *s.showPermissionSets
 	}
 	r.setParams(m)
 	data, err := s.c.callAPI(ctx, r, opts...)
@@ -102,6 +114,7 @@ type Symbol struct {
 	IsMarginTradingAllowed     bool                     `json:"isMarginTradingAllowed"`
 	Filters                    []map[string]interface{} `json:"filters"`
 	Permissions                []string                 `json:"permissions"`
+	PermissionSets             [][]string               `json:"permissionSets"`
 }
 
 // LotSizeFilter define lot size filter of symbol

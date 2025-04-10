@@ -4,16 +4,17 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/bitly/go-simplejson"
-	jsoniter "github.com/json-iterator/go"
 
 	"github.com/adshao/go-binance/v2/common"
 	"github.com/adshao/go-binance/v2/delivery"
@@ -127,11 +128,13 @@ var (
 	BaseAPITestnetURL = "https://testnet.binance.vision"
 )
 
+// SelfTradePreventionMode define self trade prevention strategy
+type SelfTradePreventionMode string
+
+type MarginAccountBorrowRepayType string
+
 // UseTestnet switch all the API endpoints from production to the testnet
 var UseTestnet = false
-
-// Redefining the standard package
-var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 // Global enums
 const (
@@ -209,9 +212,10 @@ const (
 	FuturesTransferStatusTypeConfirmed FuturesTransferStatusType = "CONFIRMED"
 	FuturesTransferStatusTypeFailed    FuturesTransferStatusType = "FAILED"
 
-	SideEffectTypeNoSideEffect SideEffectType = "NO_SIDE_EFFECT"
-	SideEffectTypeMarginBuy    SideEffectType = "MARGIN_BUY"
-	SideEffectTypeAutoRepay    SideEffectType = "AUTO_REPAY"
+	SideEffectTypeNoSideEffect    SideEffectType = "NO_SIDE_EFFECT"
+	SideEffectTypeMarginBuy       SideEffectType = "MARGIN_BUY"
+	SideEffectTypeAutoRepay       SideEffectType = "AUTO_REPAY"
+	SideEffectTypeAutoBorrowRepay SideEffectType = "AUTO_BORROW_REPAY"
 
 	TransactionTypeDeposit  TransactionType = "0"
 	TransactionTypeWithdraw TransactionType = "1"
@@ -315,6 +319,18 @@ const (
 	FuturesAlgoOrderStatusTypeWorking   FuturesAlgoOrderStatusType = "WORKING"
 	FuturesAlgoOrderStatusTypeFinished  FuturesAlgoOrderStatusType = "FINISHED"
 	FuturesAlgoOrderStatusTypeCancelled FuturesAlgoOrderStatusType = "CANCELLED"
+
+	SelfTradePreventionModeNone        SelfTradePreventionMode = "NONE"
+	SelfTradePreventionModeExpireTaker SelfTradePreventionMode = "EXPIRE_TAKER"
+	SelfTradePreventionModeExpireBoth  SelfTradePreventionMode = "EXPIRE_BOTH"
+	SelfTradePreventionModeExpireMaker SelfTradePreventionMode = "EXPIRE_MAKER"
+
+	MarginAccountBorrow MarginAccountBorrowRepayType = "BORROW"
+	MarginAccountRepay  MarginAccountBorrowRepayType = "REPAY"
+
+	MarginAccountBorrowRepayStatusPending   string = "PENDING"
+	MarginAccountBorrowRepayStatusConfirmed string = "CONFIRMED"
+	MarginAccountBorrowRepayStatusFailed    string = "FAILED"
 )
 
 func currentTimestamp() int64 {
@@ -435,8 +451,12 @@ func (c *Client) parseRequest(r *request, opts ...RequestOption) (err error) {
 		r.setParam(timestampKey, currentTimestamp()-c.TimeOffset)
 	}
 	queryString := r.query.Encode()
+	// @ is a safe character and does not require escape, So replace it back.
+	queryString = strings.ReplaceAll(queryString, "%40", "@")
 	body := &bytes.Buffer{}
 	bodyString := r.form.Encode()
+	// @ is a safe character and does not require escape, So replace it back.
+	bodyString = strings.ReplaceAll(bodyString, "%40", "@")
 	header := http.Header{}
 	if r.header != nil {
 		header = r.header.Clone()
@@ -501,7 +521,7 @@ func (c *Client) callAPI(ctx context.Context, r *request, opts ...RequestOption)
 	if err != nil {
 		return []byte{}, err
 	}
-	data, err = ioutil.ReadAll(res.Body)
+	data, err = io.ReadAll(res.Body)
 	if err != nil {
 		return []byte{}, err
 	}
@@ -762,6 +782,10 @@ func (c *Client) NewGetAssetDetailService() *GetAssetDetailService {
 	return &GetAssetDetailService{c: c}
 }
 
+func (c *Client) NewWalletBalanceService() *WalletBalanceService {
+	return &WalletBalanceService{c: c}
+}
+
 // NewAveragePriceService init average price service
 func (c *Client) NewAveragePriceService() *AveragePriceService {
 	return &AveragePriceService{c: c}
@@ -773,13 +797,24 @@ func (c *Client) NewMarginTransferService() *MarginTransferService {
 }
 
 // NewMarginLoanService init margin account loan service
+// Deprecated: use NewMarginBorrowRepayService instead
 func (c *Client) NewMarginLoanService() *MarginLoanService {
 	return &MarginLoanService{c: c}
 }
 
 // NewMarginRepayService init margin account repay service
+// Deprecated: use NewMarginBorrowRepayService instead
 func (c *Client) NewMarginRepayService() *MarginRepayService {
 	return &MarginRepayService{c: c}
+}
+
+// NewMarginBorrowRepayService init margin account borrow/repay service
+func (c *Client) NewMarginBorrowRepayService() *MarginBorrowRepayService {
+	return &MarginBorrowRepayService{c: c}
+}
+
+func (c *Client) NewListMarginBorrowRepayService() *ListMarginBorrowRepayService {
+	return &ListMarginBorrowRepayService{c: c}
 }
 
 // NewCreateMarginOrderService init creating margin order service
@@ -808,11 +843,13 @@ func (c *Client) NewGetMarginOrderService() *GetMarginOrderService {
 }
 
 // NewListMarginLoansService init list margin loan service
+// Deprecated: use NewListMarginBorrowRepayService instead
 func (c *Client) NewListMarginLoansService() *ListMarginLoansService {
 	return &ListMarginLoansService{c: c}
 }
 
 // NewListMarginRepaysService init list margin repay service
+// Deprecated: use NewListMarginBorrowRepayService instead
 func (c *Client) NewListMarginRepaysService() *ListMarginRepaysService {
 	return &ListMarginRepaysService{c: c}
 }
@@ -904,6 +941,11 @@ func (c *Client) NewKeepaliveIsolatedMarginUserStreamService() *KeepaliveIsolate
 // NewCloseIsolatedMarginUserStreamService init closing margin user stream service
 func (c *Client) NewCloseIsolatedMarginUserStreamService() *CloseIsolatedMarginUserStreamService {
 	return &CloseIsolatedMarginUserStreamService{c: c}
+}
+
+// NewMarginInterestHistoryService init margin interest history service
+func (c *Client) NewMarginInterestHistoryService() *MarginInterestHistoryService {
+	return &MarginInterestHistoryService{c: c}
 }
 
 // NewFuturesTransferService init futures transfer service
@@ -1423,3 +1465,10 @@ func (c *Client) NewCancelFuturesAlgoOrderService() *CancelFuturesAlgoOrderServi
 func (c *Client) NewGetFuturesAlgoSubOrdersService() *GetFuturesAlgoSubOrdersService {
 	return &GetFuturesAlgoSubOrdersService{c: c}
 }
+
+// ----- simple earn service -----
+func (c *Client) NewSimpleEarnService() *SimpleEarnService {
+	return &SimpleEarnService{c: c}
+}
+
+// ----- end simple earn service -----

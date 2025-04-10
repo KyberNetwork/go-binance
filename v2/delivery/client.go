@@ -6,7 +6,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -64,9 +64,9 @@ type UserDataEventType string
 type UserDataEventReasonType string
 
 // Endpoints
-const (
-	baseApiMainUrl    = "https://dapi.binance.com"
-	baseApiTestnetUrl = "https://testnet.binancefuture.com"
+var (
+	BaseApiMainUrl    = "https://dapi.binance.com"
+	BaseApiTestnetUrl = "https://testnet.binancefuture.com"
 )
 
 // Global enums
@@ -178,9 +178,9 @@ func newJSON(data []byte) (j *simplejson.Json, err error) {
 // getApiEndpoint return the base endpoint of the WS according the UseTestnet flag
 func getApiEndpoint() string {
 	if UseTestnet {
-		return baseApiTestnetUrl
+		return BaseApiTestnetUrl
 	}
-	return baseApiMainUrl
+	return BaseApiMainUrl
 }
 
 // NewClient initialize an API client instance with API key and secret key.
@@ -326,7 +326,7 @@ func (c *Client) callAPI(ctx context.Context, r *request, opts ...RequestOption)
 	if err != nil {
 		return []byte{}, err
 	}
-	data, err = ioutil.ReadAll(res.Body)
+	data, err = io.ReadAll(res.Body)
 	if err != nil {
 		return []byte{}, err
 	}
@@ -500,4 +500,9 @@ func (c *Client) NewGetOpenInterestService() *GetOpenInterestService {
 // NewGetFundingRateService init funding rate service
 func (c *Client) NewGetFundingInfoService() *GetFundingInfoService {
 	return &GetFundingInfoService{c: c}
+}
+
+// NewFundingRateService init funding rate service
+func (c *Client) NewFundingRateService() *FundingRateService {
+	return &FundingRateService{c: c}
 }

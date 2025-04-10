@@ -15,5 +15,8 @@ extend-ignore-re = [
     "OTU",
     "[Tt]ransfered",
     "[Mm]arginable",
+    "DELIVERED_SETTELMENT",
+    "SETTELMENT",
+    "[Aa]ccured"
 ]
 check-filename = true

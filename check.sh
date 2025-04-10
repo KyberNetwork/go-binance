@@ -11,7 +11,12 @@ function format() {
     elif [[ $1 == "-l" ]]; then
         gofmt -l $(find . -type f -name '*.go' -not -path "./vendor/*")
     else
-        test -z "$(gofmt -l $(find . -type f -name '*.go' -not -path "./vendor/*"))"
+        UNFORMATTED=$(gofmt -l $(find . -type f -name '*.go' -not -path "./vendor/*"))
+        if [[ ! -z "$UNFORMATTED" ]]; then
+            echo "The following files are not properly formatted:"
+            echo "$UNFORMATTED"
+            exit 1
+        fi
     fi
 }
 
@@ -35,6 +40,12 @@ function unittest() {
         cd v2
         go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
     )
+}
+
+function integration() {
+    echo "Running integration test ..."
+    cd v2
+    go test -v -tags=integration -race -coverprofile=coverage.txt -covermode=atomic ./...
 }
 
 if [[ -z $ACTION ]]; then

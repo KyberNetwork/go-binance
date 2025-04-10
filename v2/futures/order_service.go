@@ -14,23 +14,24 @@ import (
 
 // CreateOrderService create order
 type CreateOrderService struct {
-	c                *Client
-	symbol           string
-	side             SideType
-	positionSide     *PositionSideType
-	orderType        OrderType
-	timeInForce      *TimeInForceType
-	quantity         string
-	reduceOnly       *string
-	price            *string
-	newClientOrderID *string
-	stopPrice        *string
-	workingType      *WorkingType
-	activationPrice  *string
-	callbackRate     *string
-	priceProtect     *string
-	newOrderRespType NewOrderRespType
-	closePosition    *string
+	c                       *Client
+	symbol                  string
+	side                    SideType
+	positionSide            *PositionSideType
+	orderType               OrderType
+	timeInForce             *TimeInForceType
+	quantity                string
+	reduceOnly              *string
+	price                   *string
+	newClientOrderID        *string
+	stopPrice               *string
+	workingType             *WorkingType
+	activationPrice         *string
+	callbackRate            *string
+	priceProtect            *string
+	newOrderRespType        NewOrderRespType
+	closePosition           *string
+	selfTradePreventionMode *SelfTradePreventionMode
 }
 
 // Symbol set symbol
@@ -132,6 +133,12 @@ func (s *CreateOrderService) ClosePosition(closePosition bool) *CreateOrderServi
 	return s
 }
 
+// SelfTradePreventionMode set selfTradePreventionMode
+func (s *CreateOrderService) SelfTradePreventionMode(selfTradePreventionMode SelfTradePreventionMode) *CreateOrderService {
+	s.selfTradePreventionMode = &selfTradePreventionMode
+	return s
+}
+
 func (s *CreateOrderService) createOrder(ctx context.Context, endpoint string, opts ...RequestOption) (data []byte, header *http.Header, err error) {
 	r := &request{
 		method:   http.MethodPost,
@@ -161,6 +168,8 @@ func (s *CreateOrderService) createOrder(ctx context.Context, endpoint string, o
 	}
 	if s.newClientOrderID != nil {
 		m["newClientOrderId"] = *s.newClientOrderID
+	} else {
+		m["newClientOrderId"] = common.GenerateSwapId()
 	}
 	if s.stopPrice != nil {
 		m["stopPrice"] = *s.stopPrice
@@ -179,6 +188,9 @@ func (s *CreateOrderService) createOrder(ctx context.Context, endpoint string, o
 	}
 	if s.closePosition != nil {
 		m["closePosition"] = *s.closePosition
+	}
+	if s.selfTradePreventionMode != nil {
+		m["selfTradePreventionMode"] = *s.selfTradePreventionMode
 	}
 	r.setFormParams(m)
 	data, header, err = s.c.callAPI(ctx, r, opts...)
@@ -668,27 +680,28 @@ func (s *CancelOrderService) Do(ctx context.Context, opts ...RequestOption) (res
 
 // CancelOrderResponse define response of canceling order
 type CancelOrderResponse struct {
-	ClientOrderID    string           `json:"clientOrderId"`
-	CumQuantity      string           `json:"cumQty"` // deprecated: use ExecutedQuantity instead
-	CumQuote         string           `json:"cumQuote"`
-	ExecutedQuantity string           `json:"executedQty"`
-	OrderID          int64            `json:"orderId"`
-	OrigQuantity     string           `json:"origQty"`
-	Price            string           `json:"price"`
-	ReduceOnly       bool             `json:"reduceOnly"`
-	Side             SideType         `json:"side"`
-	Status           OrderStatusType  `json:"status"`
-	StopPrice        string           `json:"stopPrice"`
-	Symbol           string           `json:"symbol"`
-	TimeInForce      TimeInForceType  `json:"timeInForce"`
-	Type             OrderType        `json:"type"`
-	UpdateTime       int64            `json:"updateTime"`
-	WorkingType      WorkingType      `json:"workingType"`
-	ActivatePrice    string           `json:"activatePrice"`
-	PriceRate        string           `json:"priceRate"`
-	OrigType         string           `json:"origType"`
-	PositionSide     PositionSideType `json:"positionSide"`
-	PriceProtect     bool             `json:"priceProtect"`
+	ClientOrderID           string                  `json:"clientOrderId"`
+	CumQuantity             string                  `json:"cumQty"` // deprecated: use ExecutedQuantity instead
+	CumQuote                string                  `json:"cumQuote"`
+	ExecutedQuantity        string                  `json:"executedQty"`
+	OrderID                 int64                   `json:"orderId"`
+	OrigQuantity            string                  `json:"origQty"`
+	Price                   string                  `json:"price"`
+	ReduceOnly              bool                    `json:"reduceOnly"`
+	Side                    SideType                `json:"side"`
+	Status                  OrderStatusType         `json:"status"`
+	StopPrice               string                  `json:"stopPrice"`
+	Symbol                  string                  `json:"symbol"`
+	TimeInForce             TimeInForceType         `json:"timeInForce"`
+	Type                    OrderType               `json:"type"`
+	UpdateTime              int64                   `json:"updateTime"`
+	WorkingType             WorkingType             `json:"workingType"`
+	ActivatePrice           string                  `json:"activatePrice"`
+	PriceRate               string                  `json:"priceRate"`
+	OrigType                string                  `json:"origType"`
+	PositionSide            PositionSideType        `json:"positionSide"`
+	PriceProtect            bool                    `json:"priceProtect"`
+	SelfTradePreventionMode SelfTradePreventionMode `json:"selfTradePreventionMode"`
 }
 
 // CancelAllOpenOrdersService cancel all open orders
@@ -1008,6 +1021,8 @@ func (s *CreateBatchOrdersService) Do(ctx context.Context, opts ...RequestOption
 		}
 		if order.newClientOrderID != nil {
 			m["newClientOrderId"] = *order.newClientOrderID
+		} else {
+			m["newClientOrderId"] = common.GenerateSwapId()
 		}
 		if order.stopPrice != nil {
 			m["stopPrice"] = *order.stopPrice
@@ -1074,4 +1089,177 @@ func (s *CreateBatchOrdersService) Do(ctx context.Context, opts ...RequestOption
 	}
 
 	return batchCreateOrdersResponse, nil
+}
+
+// ModifyOrder contains parameters for order modification request
+type ModifyOrder struct {
+	orderID           *int64
+	origClientOrderID *string
+	symbol            string
+	side              SideType
+	quantity          string
+	price             *string
+	priceMatch        *PriceMatchType
+}
+
+// Symbol set symbol
+func (s *ModifyOrder) Symbol(symbol string) *ModifyOrder {
+	s.symbol = symbol
+	return s
+}
+
+// OrderID will prevail over OrigClientOrderID
+func (s *ModifyOrder) OrderID(orderID int64) *ModifyOrder {
+	s.orderID = &orderID
+	return s
+}
+
+// OrigClientOrderID is not necessary if OrderID is provided
+func (s *ModifyOrder) OrigClientOrderID(origClientOrderID string) *ModifyOrder {
+	s.origClientOrderID = &origClientOrderID
+	return s
+}
+
+// Side set side
+func (s *ModifyOrder) Side(side SideType) *ModifyOrder {
+	s.side = side
+	return s
+}
+
+// Quantity set quantity
+func (s *ModifyOrder) Quantity(quantity string) *ModifyOrder {
+	s.quantity = quantity
+	return s
+}
+
+// Price set price
+func (s *ModifyOrder) Price(price string) *ModifyOrder {
+	s.price = &price
+	return s
+}
+
+// PriceMatch set priceMatch
+func (s *ModifyOrder) PriceMatch(priceMatch PriceMatchType) *ModifyOrder {
+	s.priceMatch = &priceMatch
+	return s
+}
+
+// ModifyBatchOrdersService handles batch modification of orders
+type ModifyBatchOrdersService struct {
+	c      *Client
+	orders []*ModifyOrder
+}
+
+// CreateBatchOrdersResponse contains the response from CreateBatchOrders operation
+type ModifyBatchOrdersResponse struct {
+	// Total number of messages in the response
+	N int
+	// List of orders which were modified successfully which can have a length between 0 and N
+	Orders []*Order
+	// List of errors of length N, where each item corresponds to a nil value if
+	// the order from that specific index was placed succeessfully OR an non-nil *APIError if there was an error with
+	// the order at that index
+	Errors []error
+}
+
+func newModifyBatchOrdersResponse(n int) *ModifyBatchOrdersResponse {
+	return &ModifyBatchOrdersResponse{
+		N:      n,
+		Errors: make([]error, n),
+	}
+}
+
+// OrderList set the list of ModifyOrder to be used in the ModifyBatchOrders operation
+func (s *ModifyBatchOrdersService) OrderList(orders []*ModifyOrder) *ModifyBatchOrdersService {
+	s.orders = orders
+	return s
+}
+
+// Do sends a request to modify a batch of orders.
+// It constructs the necessary parameters for each order and marshals them into a JSON payload.
+// The function returns a ModifyBatchOrdersResponse, which contains the results of the modification attempt.
+func (s *ModifyBatchOrdersService) Do(ctx context.Context, opts ...RequestOption) (res *ModifyBatchOrdersResponse, err error) {
+	// Create a new request with method PUT and the appropriate endpoint.
+	r := &request{
+		method:   http.MethodPut,
+		endpoint: "/fapi/v1/batchOrders",
+		secType:  secTypeSigned,
+	}
+
+	orders := []params{}
+	// Iterate through the orders to construct parameters for each order.
+	for _, order := range s.orders {
+		m := params{
+			"symbol":   order.symbol,
+			"side":     order.side,
+			"quantity": order.quantity,
+			"price":    order.price,
+		}
+
+		// Convert orderID to string to avoid API error with code -1102.
+		if order.orderID != nil {
+			m["orderId"] = strconv.FormatInt(*order.orderID, 10)
+		}
+		if order.origClientOrderID != nil {
+			m["origClientOrderId"] = *order.origClientOrderID
+		} else {
+			m["newClientOrderId"] = common.GenerateSwapId()
+		}
+		if order.priceMatch != nil {
+			m["priceMatch"] = *order.priceMatch
+		}
+
+		orders = append(orders, m)
+	}
+
+	// Marshal the orders into a JSON payload.
+	b, err := json.Marshal(orders)
+	if err != nil {
+		return &ModifyBatchOrdersResponse{}, err
+	}
+
+	// Set the marshaled orders as form parameters.
+	m := params{
+		"batchOrders": string(b),
+	}
+	r.setFormParams(m)
+
+	// Call the API with the constructed request.
+	data, _, err := s.c.callAPI(ctx, r, opts...)
+	if err != nil {
+		return &ModifyBatchOrdersResponse{}, err
+	}
+
+	rawMessages := make([]*json.RawMessage, 0)
+	// Unmarshal the response into raw JSON messages.
+	err = json.Unmarshal(data, &rawMessages)
+	if err != nil {
+		return &ModifyBatchOrdersResponse{}, err
+	}
+
+	// Create a response object to hold the results.
+	batchModifyOrdersResponse := newModifyBatchOrdersResponse(len(rawMessages))
+	for i, j := range rawMessages {
+		// Check if the response contains an API error.
+		e := new(common.APIError)
+		if err := json.Unmarshal(*j, e); err != nil {
+			return nil, err
+		}
+
+		// If there's an error code or message, record it and continue.
+		if e.Code > 0 || e.Message != "" {
+			batchModifyOrdersResponse.Errors[i] = e
+			continue
+		}
+
+		// Otherwise, unmarshal the order information.
+		o := new(Order)
+		if err := json.Unmarshal(*j, o); err != nil {
+			return nil, err
+		}
+
+		batchModifyOrdersResponse.Orders = append(batchModifyOrdersResponse.Orders, o)
+	}
+
+	return batchModifyOrdersResponse, nil
 }
