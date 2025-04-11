@@ -17,7 +17,7 @@ type WsApiMethodType string
 type WsApiRequest struct {
 	Id     string                 `json:"id"`
 	Method WsApiMethodType        `json:"method"`
-	Params map[string]interface{} `json:"params"`
+	Params map[string]interface{} `json:"params,omitempty"`
 }
 
 var (
@@ -47,6 +47,21 @@ const (
 
 	// CancelFuturesWsApiMethod define method for cancel order via websocket API
 	CancelFuturesWsApiMethod WsApiMethodType = "order.cancel"
+
+	// SessionLogonSpotWsApiMethod define method to authenticate, or change the API key associated with the connection
+	SessionLogonSpotWsApiMethod = "session.logon"
+
+	// SessionStatusSpotWsApiMethod define method to check connection status and the current API key
+	SessionStatusSpotWsApiMethod = "session.status"
+
+	// SessionLogoutSpotWsApiMethod define method to forget the API key associated with the connection
+	SessionLogoutSpotWsApiMethod = "session.logout"
+
+	// UserDataStreamSubscribeSpotWsApiMethod define method to subscribe to user data stream via websocket API
+	UserDataStreamSubscribeSpotWsApiMethod = "userDataStream.subscribe"
+
+	// UserDataStreamUnsubscribeSpotWsApiMethod define method to unsubscribe from user data stream via websocket API
+	UserDataStreamUnsubscribeSpotWsApiMethod = "userDataStream.unsubscribe"
 )
 
 var (
@@ -136,4 +151,24 @@ func encodeParams(p map[string]interface{}) string {
 
 func timestamp(offsetMilli int64) int64 {
 	return time.Now().UnixMilli() - offsetMilli
+}
+
+// CreateUnsignedRequest creates unsigned ws request
+func CreateUnsignedRequest(requestID string, method WsApiMethodType, params map[string]interface{}) ([]byte, error) {
+	if requestID == "" {
+		return nil, ErrorRequestIDNotSet
+	}
+
+	req := WsApiRequest{
+		Id:     requestID,
+		Method: method,
+		Params: params,
+	}
+
+	rawData, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	return rawData, nil
 }
