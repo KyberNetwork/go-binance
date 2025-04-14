@@ -368,6 +368,7 @@ type Connection interface {
 	WriteMessage(messageType int, data []byte) error
 	ReadMessage() (messageType int, p []byte, err error)
 	RestoreConnection() (Connection, error)
+	Close() error
 }
 
 // WriteMessage is a thread-safe method for conn.WriteMessage
@@ -408,7 +409,7 @@ func (c *connection) keepAlive(timeout time.Duration) {
 
 			<-ticker.C
 			if c.isLastResponseOutdated(timeout) {
-				c.close()
+				c.Close()
 				return
 			}
 		}
@@ -429,8 +430,8 @@ func (c *connection) isLastResponseOutdated(timeout time.Duration) bool {
 	return time.Since(c.lastResponse) > timeout
 }
 
-// close thread-safe method for closing connection
-func (c *connection) close() error {
+// Close thread-safe method for closing connection
+func (c *connection) Close() error {
 	c.connectionMu.Lock()
 	defer c.connectionMu.Unlock()
 	return c.conn.Close()
