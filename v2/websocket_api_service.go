@@ -358,7 +358,11 @@ func WsApiUserDataServe(apiKey, secretKey string, handler WsUserDataHandler, err
 		return
 	}
 	if logonRes.Status != http.StatusOK {
-		err = fmt.Errorf("%w, status = %d", ErrorLogonStatusNotOK, logonRes.Status)
+		detail := ""
+		if logonRes.Error != nil {
+			detail = logonRes.Error.Error()
+		}
+		err = fmt.Errorf("%w, status = %d, err = %s", ErrorLogonStatusNotOK, logonRes.Status, detail)
 		return
 	}
 
@@ -366,7 +370,11 @@ func WsApiUserDataServe(apiKey, secretKey string, handler WsUserDataHandler, err
 		return
 	}
 	if subRes.Status != http.StatusOK {
-		err = fmt.Errorf("%w, status = %d", ErrorSubscribeUserDataStatusNotOK, subRes.Status)
+		detail := ""
+		if subRes.Error != nil {
+			detail = subRes.Error.Error()
+		}
+		err = fmt.Errorf("%w, status = %d, err = %s", ErrorSubscribeUserDataStatusNotOK, subRes.Status, detail)
 	}
 	return
 }
