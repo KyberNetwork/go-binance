@@ -670,6 +670,10 @@ func (c *Client) NewGetAccountService() *GetAccountService {
 	return &GetAccountService{c: c}
 }
 
+func (c *Client) NewGetCommissionRatesService() *GetCommissionRatesService {
+	return &GetCommissionRatesService{c: c}
+}
+
 // NewGetAPIKeyPermission init getting API key permission
 func (c *Client) NewGetAPIKeyPermission() *GetAPIKeyPermission {
 	return &GetAPIKeyPermission{c: c}
