@@ -70,14 +70,11 @@ type GenericWSClient struct {
 	terminateOnce sync.Once
 	terminateErr  error
 	closeCh       chan struct{}
-	apiKey        string
-	apiSecret     string
-	keyType       string
 	logger        Logger
 	blocker       *RateLimitBlocker
 }
 
-func NewGenericWSClient(wsURL, apiKey, apiSecret, keyType string, header http.Header, logger Logger, blocker *RateLimitBlocker) (*GenericWSClient, error) {
+func NewGenericWSClient(wsURL string, header http.Header, logger Logger, blocker *RateLimitBlocker) (*GenericWSClient, error) {
 	conn, err := websocket2.NewConnection(func() (*websocket.Conn, error) {
 		Dialer := websocket.Dialer{
 			Proxy:             http.ProxyFromEnvironment,
@@ -95,14 +92,11 @@ func NewGenericWSClient(wsURL, apiKey, apiSecret, keyType string, header http.He
 		return nil, err
 	}
 	c := &GenericWSClient{
-		conn:      conn,
-		pending:   make(map[string]chan GenericWSResponse),
-		closeCh:   make(chan struct{}),
-		apiKey:    apiKey,
-		apiSecret: apiSecret,
-		keyType:   keyType,
-		logger:    logger,
-		blocker:   blocker,
+		conn:    conn,
+		pending: make(map[string]chan GenericWSResponse),
+		closeCh: make(chan struct{}),
+		logger:  logger,
+		blocker: blocker,
 	}
 	go c.readLoop()
 	return c, nil
@@ -128,26 +122,15 @@ func (c *GenericWSClient) Close() error {
 	})
 	return c.terminateErr
 }
-func (c *GenericWSClient) SendRequest(ctx context.Context, method string, params map[string]interface{}) (GenericWSResponse, error) {
-	resp, err := c.SendRequestAsync(method, params)
-	if err != nil {
-		return GenericWSResponse{}, err
-	}
-	out, ok := resp.Wait(ctx)
-	if !ok {
-		return GenericWSResponse{}, ErrTimeout
-	}
-	return out, nil
-}
 
 // SendRequestAsync returns a Future you can wait on later. The future will deliver exactly one GenericWSResponse.
-func (c *GenericWSClient) SendRequestAsync(method string, params map[string]interface{}) (*Future, error) {
+func (c *GenericWSClient) SendRequestAsync(apiKey, apiSecret, keyType, method string, params map[string]interface{}) (*Future, error) {
 	if err := c.blocker.Try(); err != nil {
 		return nil, err
 	}
 	id := strconv.FormatUint(atomic.AddUint64(&c.idCounter, 1), 10)
 	rawData, err := websocket2.CreateRequest(
-		websocket2.NewRequestData(id, c.apiKey, c.apiSecret, 0, c.keyType),
+		websocket2.NewRequestData(id, apiKey, apiSecret, 0, keyType),
 		websocket2.WsApiMethodType(method), params)
 	if err != nil {
 		return nil, fmt.Errorf("can not create request: %w", err)
@@ -320,25 +303,25 @@ func NewWSGenericClientSession(wsURL, apiKey, apiSecret, keyType string, header 
 	}
 }
 
-func (s *WSGenericClientSession) SendRequest(ctx context.Context, method string, params map[string]interface{}) (GenericWSResponse, error) {
-	client := s.getClient()
-	if client == nil {
-		return GenericWSResponse{}, ErrNoConnection
-	}
-	return client.SendRequest(ctx, method, params)
-}
-
 func (s *WSGenericClientSession) SendRequestAsync(method string, params map[string]interface{}) (*Future, error) {
 	client := s.getClient()
 	if client == nil {
 		return nil, ErrNoConnection
 	}
-	return client.SendRequestAsync(method, params)
+	return client.SendRequestAsync(s.apiKey, s.apiSecret, s.keyType, method, params)
+}
+
+func (s *WSGenericClientSession) SendRequestAsyncWithAccount(apiKey, apiSecret, keyType, method string, params map[string]interface{}) (*Future, error) {
+	client := s.getClient()
+	if client == nil {
+		return nil, ErrNoConnection
+	}
+	return client.SendRequestAsync(apiKey, apiSecret, keyType, method, params)
 }
 
 func (s *WSGenericClientSession) Run() {
 	for {
-		client, err := NewGenericWSClient(s.wsURL, s.apiKey, s.apiSecret, s.keyType, s.header, s.logger, s.retryBlocker)
+		client, err := NewGenericWSClient(s.wsURL, s.header, s.logger, s.retryBlocker)
 		if err != nil {
 			s.logger.Errorw("new client error", "err", err)
 			time.Sleep(time.Second)
