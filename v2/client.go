@@ -670,6 +670,10 @@ func (c *Client) NewGetAccountService() *GetAccountService {
 	return &GetAccountService{c: c}
 }
 
+func (c *Client) NewGetCommissionRatesService() *GetCommissionRatesService {
+	return &GetCommissionRatesService{c: c}
+}
+
 // NewGetAPIKeyPermission init getting API key permission
 func (c *Client) NewGetAPIKeyPermission() *GetAPIKeyPermission {
 	return &GetAPIKeyPermission{c: c}
@@ -784,6 +788,22 @@ func (c *Client) NewGetAssetDetailService() *GetAssetDetailService {
 
 func (c *Client) NewWalletBalanceService() *WalletBalanceService {
 	return &WalletBalanceService{c: c}
+}
+
+func (c *Client) NewCreateMarginSpecialKeyService(apiName string) *CreateMarginSpecialKeyService {
+	return &CreateMarginSpecialKeyService{c: c, apiName: apiName}
+}
+
+func (c *Client) NewDeleteMarginSpecialKeyService() *DeleteMarginSpecialKeyService {
+	return &DeleteMarginSpecialKeyService{c: c}
+}
+
+func (c *Client) NewUpdateMarginSpecialKeyService(apiKey string) *UpdateMarginSpecialKeyService {
+	return &UpdateMarginSpecialKeyService{c: c, apiKey: apiKey}
+}
+
+func (c *Client) NewListMarginSpecialKeyService() *ListMarginSpecialKeyService {
+	return &ListMarginSpecialKeyService{c: c}
 }
 
 // NewAveragePriceService init average price service

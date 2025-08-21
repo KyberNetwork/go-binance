@@ -8,7 +8,7 @@ replace github.com/adshao/go-binance/v2 => ../v2
 
 replace github.com/adshao/go-binance/v2/futures => ../v2/futures
 
-require github.com/adshao/go-binance/v2 v2.0.0-00010101000000-000000000000
+require github.com/adshao/go-binance/v2 v2.4.5
 
 require (
 	github.com/bitly/go-simplejson v0.5.0 // indirect

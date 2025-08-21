@@ -93,6 +93,7 @@ type RateLimit struct {
 	Interval      string `json:"interval"`
 	IntervalNum   int64  `json:"intervalNum"`
 	Limit         int64  `json:"limit"`
+	Count         int64  `json:"count"`
 }
 
 // Symbol market symbol
