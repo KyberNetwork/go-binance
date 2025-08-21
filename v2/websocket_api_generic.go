@@ -20,7 +20,10 @@ type Logger interface {
 	Errorw(msg string, keysAndValues ...interface{})
 }
 
-var ErrNoConnection = errors.New("no connection")
+var (
+	ErrNoConnection = errors.New("no connection")
+	ErrTimeout      = errors.New("timeout")
+)
 
 type GenericWSResponse struct {
 	ID         string          `json:"id"`
@@ -46,19 +49,24 @@ type RPCError struct {
 // Future holds the response channel for an outstanding request.
 type Future struct {
 	Response <-chan GenericWSResponse // receive exactly one value
-	// internal:
-	doneCh chan GenericWSResponse
+}
+
+func (f *Future) Wait(ctx context.Context) (GenericWSResponse, bool) {
+	select {
+	case response := <-f.Response:
+		return response, true
+	case <-ctx.Done():
+		return GenericWSResponse{}, false
+	}
 }
 
 type GenericWSClient struct {
 	conn websocket2.Connection
 	//conn      *websocket.Conn
-	writeMu   sync.Mutex // serialize writes to websocket
 	pendingMu sync.Mutex
 	pending   map[string]chan GenericWSResponse
 
-	idCounter uint64
-	// closed when read loop or Close() triggers termination
+	idCounter     uint64
 	terminateOnce sync.Once
 	terminateErr  error
 	closeCh       chan struct{}
@@ -120,48 +128,16 @@ func (c *GenericWSClient) Close() error {
 	})
 	return c.terminateErr
 }
-func (c *GenericWSClient) SendRequest(ctx context.Context, method string, params map[string]interface{}, maxTimeout time.Duration) (GenericWSResponse, error) {
-	if err := c.blocker.Try(); err != nil {
+func (c *GenericWSClient) SendRequest(ctx context.Context, method string, params map[string]interface{}) (GenericWSResponse, error) {
+	resp, err := c.SendRequestAsync(method, params)
+	if err != nil {
 		return GenericWSResponse{}, err
 	}
-	// create a context with timeout derived from provided ctx
-	ctxReq, cancel := context.WithTimeout(ctx, maxTimeout)
-	defer cancel()
-	id := strconv.FormatUint(atomic.AddUint64(&c.idCounter, 1), 10)
-	rawData, err := websocket2.CreateRequest(
-		websocket2.NewRequestData(id, c.apiKey, c.apiSecret, 0, c.keyType),
-		websocket2.WsApiMethodType(method), params)
-	if err != nil {
-		return GenericWSResponse{}, fmt.Errorf("can not create request: %w", err)
+	out, ok := resp.Wait(ctx)
+	if !ok {
+		return GenericWSResponse{}, ErrTimeout
 	}
-
-	// prepare response channel
-	respCh := make(chan GenericWSResponse, 1)
-
-	// store pending
-	c.pendingMu.Lock()
-	c.pending[id] = respCh
-	c.pendingMu.Unlock()
-
-	// ensure cleanup: remove pending on exit
-	defer func() {
-		c.pendingMu.Lock()
-		delete(c.pending, id)
-		c.pendingMu.Unlock()
-	}()
-	if err := c.conn.WriteMessage(websocket.TextMessage, rawData); err != nil {
-		return GenericWSResponse{}, fmt.Errorf("write failed: %w", err)
-	}
-	// wait for response, client close, or timeout/cancel
-	select {
-	case resp := <-respCh:
-		if resp.Error != nil {
-			return resp, fmt.Errorf("rpc error: code=%d message=%s", resp.Error.Code, resp.Error.Message)
-		}
-		return resp, nil
-	case <-ctxReq.Done():
-		return GenericWSResponse{}, errors.New("connection closed")
-	}
+	return out, nil
 }
 
 // SendRequestAsync returns a Future you can wait on later. The future will deliver exactly one GenericWSResponse.
@@ -187,21 +163,7 @@ func (c *GenericWSClient) SendRequestAsync(method string, params map[string]inte
 		c.pendingMu.Unlock()
 		return nil, err
 	}
-
-	done := make(chan GenericWSResponse, 1)
-	future := &Future{Response: done, doneCh: done}
-
-	// forward the response across and close channel
-	go func() {
-		resp := <-respCh
-		done <- resp
-		close(done)
-		c.pendingMu.Lock()
-		delete(c.pending, id)
-		c.pendingMu.Unlock()
-	}()
-
-	return future, nil
+	return &Future{Response: respCh}, nil
 }
 
 func (c *GenericWSClient) readLoop() {
@@ -231,6 +193,9 @@ func (c *GenericWSClient) readLoop() {
 		// find pending
 		c.pendingMu.Lock()
 		ch, ok := c.pending[resp.ID]
+		if ok {
+			delete(c.pending, resp.ID) // found a match request, delete it from pending list.
+		}
 		c.pendingMu.Unlock()
 		if !ok {
 			c.logger.Errorw("unknown id", "id", resp.ID)
@@ -355,12 +320,12 @@ func NewWSGenericClientSession(wsURL, apiKey, apiSecret, keyType string, header 
 	}
 }
 
-func (s *WSGenericClientSession) SendRequest(ctx context.Context, method string, params map[string]interface{}, maxTimeout time.Duration) (GenericWSResponse, error) {
+func (s *WSGenericClientSession) SendRequest(ctx context.Context, method string, params map[string]interface{}) (GenericWSResponse, error) {
 	client := s.getClient()
 	if client == nil {
 		return GenericWSResponse{}, ErrNoConnection
 	}
-	return client.SendRequest(ctx, method, params, maxTimeout)
+	return client.SendRequest(ctx, method, params)
 }
 
 func (s *WSGenericClientSession) SendRequestAsync(method string, params map[string]interface{}) (*Future, error) {
