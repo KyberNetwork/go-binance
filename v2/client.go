@@ -453,6 +453,7 @@ func (c *Client) parseRequest(r *request, opts ...RequestOption) (err error) {
 	queryString := r.query.Encode()
 	// @ is a safe character and does not require escape, So replace it back.
 	queryString = strings.ReplaceAll(queryString, "%40", "@")
+	queryString = strings.ReplaceAll(queryString, "+", "%20")
 	body := &bytes.Buffer{}
 	bodyString := r.form.Encode()
 	// @ is a safe character and does not require escape, So replace it back.
