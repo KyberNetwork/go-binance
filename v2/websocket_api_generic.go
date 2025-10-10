@@ -11,7 +11,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	websocket2 "github.com/KyberNetwork/go-binance/v2/common/websocket"
+	websocket2 "github.com/adshao/go-binance/v2/common/websocket"
 	"github.com/gorilla/websocket"
 )
 
