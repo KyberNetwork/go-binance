@@ -40,6 +40,7 @@ func (r GenericWSResponse) ParseJSON(out interface{}) error {
 type RPCError struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
+	Msg     string `json:"msg"`
 	Data    struct {
 		ServerTime int64 `json:"serverTime"`
 		RetryAfter int64 `json:"retryAfter"`
