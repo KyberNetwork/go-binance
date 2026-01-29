@@ -192,6 +192,8 @@ const (
 	UserDataEventTypeExecutionReport         UserDataEventType = "executionReport"
 	UserDataEventTypeListStatus              UserDataEventType = "ListStatus"
 
+	EventStreamTerminated = "eventStreamTerminated"
+
 	MarginTransferTypeToMargin MarginTransferType = 1
 	MarginTransferTypeToMain   MarginTransferType = 2
 
@@ -1488,3 +1490,7 @@ func (c *Client) NewSimpleEarnService() *SimpleEarnService {
 }
 
 // ----- end simple earn service -----
+
+func (c *Client) NewMarginSubscriptionToken() *MarginSubscriptionTokenService {
+	return &MarginSubscriptionTokenService{c: c}
+}

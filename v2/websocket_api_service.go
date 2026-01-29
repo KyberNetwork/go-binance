@@ -238,6 +238,41 @@ func (s *WsApiService) unsubscribeUserDataStream(ctx context.Context) (UserStrea
 	return ret, nil
 }
 
+type MarginSubscriptionResponse struct {
+	SubscriptionID int64 `json:"subscriptionId"`
+	ExpirationTime int64 `json:"expirationTime"`
+}
+type UserMarginStreamSubscriptionResponse struct {
+	Id         string                     `json:"id"`
+	Status     int                        `json:"status"`
+	Result     MarginSubscriptionResponse `json:"result"`
+	RateLimits []RateLimit                `json:"rateLimits,omitempty"`
+
+	// error response
+	Error *common.APIError `json:"error,omitempty"`
+}
+
+func (s *WsApiService) subscribeUserMarginDataStream(ctx context.Context, token string) (UserMarginStreamSubscriptionResponse, error) {
+	var ret UserMarginStreamSubscriptionResponse
+	uuid, err := uuid.NewUUID()
+	if err != nil {
+		return ret, err
+	}
+	req, err := websocket.CreateUnsignedRequest(uuid.String(), websocket.UserMarginDataStreamSubscribeWsApiMethod, map[string]interface{}{
+		"listenToken": token,
+	})
+	if err != nil {
+		return ret, err
+	}
+	if err = s.callWithJsonUnmarshal(ctx, uuid.String(), req, &ret); err != nil {
+		return ret, err
+	}
+	if ret.Status != http.StatusOK {
+		return ret, fmt.Errorf("subscribe error: %w", ret.Error)
+	}
+	return ret, nil
+}
+
 type msgIDEvent struct {
 	Id    string          `json:"id"`
 	Event json.RawMessage `json:"event"`
