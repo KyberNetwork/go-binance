@@ -92,7 +92,13 @@ func WsApiMarginUserDataServe(apiKey, secretKey string, createSubscription Creat
 				stopC <- struct{}{}
 				return
 			case <-t.C:
-				subRes, err = wsc.subscribeUserMarginDataStream(context.Background(), initSubscription.Token)
+				newSub, err := createSubscription()
+				if err != nil {
+					errHandler(fmt.Errorf("create new session subscription: %w", err))
+					stopC <- struct{}{}
+					return
+				}
+				subRes, err = wsc.subscribeUserMarginDataStream(context.Background(), newSub.Token)
 				if err != nil {
 					errHandler(fmt.Errorf("extend session failed: %w", err))
 					stopC <- struct{}{}
