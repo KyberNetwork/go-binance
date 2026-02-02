@@ -62,6 +62,8 @@ const (
 
 	// UserDataStreamUnsubscribeSpotWsApiMethod define method to unsubscribe from user data stream via websocket API
 	UserDataStreamUnsubscribeSpotWsApiMethod = "userDataStream.unsubscribe"
+
+	UserMarginDataStreamSubscribeWsApiMethod = "userDataStream.subscribe.listenToken"
 )
 
 var (
