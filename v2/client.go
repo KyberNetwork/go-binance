@@ -796,6 +796,10 @@ func (c *Client) NewCreateMarginSpecialKeyService(apiName string) *CreateMarginS
 	return &CreateMarginSpecialKeyService{c: c, apiName: apiName}
 }
 
+func (c *Client) CreateMarginWSTokenService() *MarginWSTokenService {
+	return &MarginWSTokenService{c: c}
+}
+
 func (c *Client) NewDeleteMarginSpecialKeyService() *DeleteMarginSpecialKeyService {
 	return &DeleteMarginSpecialKeyService{c: c}
 }
